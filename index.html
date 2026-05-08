@@ -336,6 +336,8 @@
     .btn:hover { background: rgba(255,255,255,0.10); }
     .btn-primary { background: #185FA5; color: #fff; border-color: rgba(58,160,255,0.55); }
     .btn-primary:hover { background: #0C447C; }
+    .btn-danger { background: rgba(255,107,107,0.16); color: #ff4d4d; border-color: rgba(255,107,107,0.38); }
+    .btn-danger:hover { background: rgba(255,107,107,0.24); }
 
     /* FORMS */
     .form-group { margin-bottom: 14px; }
@@ -721,6 +723,19 @@
           </button>
         </div>
 
+        <div class="admin-actions" id="admin-actions-pacientes" style="display:none;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center;">
+          <select id="admin-delete-paciente" style="max-width:280px;">
+            <option value="">Seleccionar paciente para borrar...</option>
+          </select>
+          <button class="btn btn-danger" onclick="borrarPacienteSeleccionado()">
+            <i class="ti ti-trash"></i> Borrar 1 paciente
+          </button>
+          <button class="btn btn-danger" onclick="borrarTodosPacientes()">
+            <i class="ti ti-user-x"></i> Borrar todos los pacientes
+          </button>
+          <span class="badge badge-red"><i class="ti ti-shield-lock"></i> Solo admin</span>
+        </div>
+
         <div class="search-box">
           <input type="text" id="search-paciente" placeholder="Buscar por nombre o DNI..." oninput="renderPacientes()">
         </div>
@@ -855,10 +870,20 @@
           <span class="pill" onclick="filtroTipo('Cirugía', this)">Cirugía</span>
         </div>
 
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
-          <button class="btn" onclick="borrarHistorialConsultas()">
-            <i class="ti ti-eraser"></i> Borrar historial
+        <div class="admin-actions" id="admin-actions-consultas" style="display:none;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center;">
+          <select id="admin-delete-consulta" style="max-width:340px;">
+            <option value="">Seleccionar consulta para borrar...</option>
+          </select>
+          <button class="btn btn-danger" onclick="borrarConsultaSeleccionada()">
+            <i class="ti ti-trash"></i> Borrar 1 consulta
           </button>
+          <button class="btn btn-danger" onclick="borrarHistorialConsultas()">
+            <i class="ti ti-eraser"></i> Borrar todas las consultas
+          </button>
+          <span class="badge badge-red"><i class="ti ti-shield-lock"></i> Solo admin</span>
+        </div>
+
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
           <span class="badge badge-teal"><i class="ti ti-check"></i> Atendido</span>
         </div>
 
@@ -1160,6 +1185,26 @@
   }
 
   // ====== Dashboard ======
+  function actualizarSelectsBorrado() {
+    const selPaciente = document.getElementById('admin-delete-paciente');
+    if (selPaciente) {
+      selPaciente.innerHTML = '<option value="">Seleccionar paciente para borrar...</option>' +
+        pacientes.map(p => `<option value="${p.id}">${escapeHtml(p.nombre)} · DNI ${escapeHtml(p.dni)}</option>`).join('');
+    }
+
+    const selConsulta = document.getElementById('admin-delete-consulta');
+    if (selConsulta) {
+      const ordenadas = [...consultas].sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''));
+      selConsulta.innerHTML = '<option value="">Seleccionar consulta para borrar...</option>' +
+        ordenadas.map(c => {
+          const p = pacientes.find(x => x.id === c.pacienteId);
+          const nombre = p ? p.nombre : 'Paciente eliminado';
+          const detalle = `${c.codigo || ('Consulta #' + c.id)} · ${nombre} · ${c.fecha || 'sin fecha'} · ${c.tipo || ''}`;
+          return `<option value="${c.id}">${escapeHtml(detalle)}</option>`;
+        }).join('');
+    }
+  }
+
   function renderDashboard() {
     document.getElementById('stat-total').textContent = pacientes.length;
 
@@ -1204,6 +1249,7 @@
 
   // ====== Pacientes ======
   function renderPacientes() {
+    actualizarSelectsBorrado();
     const q = (document.getElementById('search-paciente').value || '').toLowerCase();
     const filtered = pacientes.filter(p => p.nombre.toLowerCase().includes(q) || String(p.dni).includes(q));
 
@@ -1230,10 +1276,76 @@
             ${alergia ? `<div style="font-size:11px;color:#854F0B;margin-top:5px;">
               <i class="ti ti-alert-triangle" style="font-size:11px;"></i> Alérgico
             </div>` : ''}
+            ${isAdmin() ? `<div style="margin-top:8px;display:flex;justify-content:flex-end;">
+              <button class="btn btn-danger" style="padding:6px 10px;font-size:11px;" onclick="event.stopPropagation(); eliminarPaciente(${p.id})">
+                <i class="ti ti-trash"></i> Borrar
+              </button>
+            </div>` : ''}
           </div>
         </div>
       `;
     }).join('');
+  }
+
+  function eliminarPaciente(id) {
+    if (!isAdmin()) return;
+    const p = pacientes.find(x => x.id === id);
+    if (!p) return;
+    const totalConsultas = consultas.filter(c => c.pacienteId === id).length;
+    const totalCitas = citas.filter(c => c.pacienteId === id).length;
+    const ok = confirm(`¿Borrar al paciente ${p.nombre}? También se eliminarán ${totalConsultas} consulta(s) y ${totalCitas} cita(s) relacionadas.`);
+    if (!ok) return;
+
+    pacientes = pacientes.filter(x => x.id !== id);
+    consultas = consultas.filter(c => c.pacienteId !== id);
+    citas = citas.filter(c => c.pacienteId !== id);
+
+    if (Number(currentClientId) === Number(id)) {
+      currentClientId = null;
+      sessionStorage.removeItem(CLIENT_SESSION_KEY);
+    }
+
+    saveData();
+    renderPacientes();
+    renderHistorial();
+    renderDashboard();
+    renderAgenda();
+    renderEstadisticas();
+    poblarSelectPaciente();
+  }
+
+  function borrarPacienteSeleccionado() {
+    if (!isAdmin()) return;
+    const sel = document.getElementById('admin-delete-paciente');
+    const id = sel ? parseInt(sel.value, 10) : NaN;
+    if (!id) {
+      alert('Selecciona un paciente para borrar.');
+      return;
+    }
+    eliminarPaciente(id);
+  }
+
+  function borrarTodosPacientes() {
+    if (!isAdmin()) return;
+    const ok = confirm('¿Seguro que quieres borrar TODOS los pacientes? También se borrarán todas las consultas y citas relacionadas.');
+    if (!ok) return;
+
+    pacientes = [];
+    consultas = [];
+    citas = [];
+    nextPacienteId = 1;
+    nextConsultaId = 1;
+    nextCitaId = 1;
+    currentClientId = null;
+    sessionStorage.removeItem(CLIENT_SESSION_KEY);
+
+    saveData();
+    renderPacientes();
+    renderHistorial();
+    renderDashboard();
+    renderAgenda();
+    renderEstadisticas();
+    poblarSelectPaciente();
   }
 
   function verPerfil(id) {
@@ -1438,6 +1550,7 @@
 
   // ====== Historial ======
   function renderHistorial() {
+    actualizarSelectsBorrado();
     const q = (document.getElementById('search-historial').value || '').toLowerCase();
 
     const filtered = consultas.filter(c => {
@@ -1483,7 +1596,7 @@
             <button class="btn" style="padding:6px 10px;font-size:11px;" onclick="toggleAtendido(${c.id})">
               <i class="ti ti-check"></i> ${c.atendido ? 'Desmarcar atendido' : 'Marcar atendido'}
             </button>
-            <button class="btn" style="padding:6px 10px;font-size:11px;" onclick="eliminarConsulta(${c.id})">
+            <button class="btn btn-danger" style="padding:6px 10px;font-size:11px;" onclick="eliminarConsulta(${c.id})">
               <i class="ti ti-trash"></i> Eliminar
             </button>
           </div>` : ''}
@@ -1523,6 +1636,17 @@
     renderHistorial();
     renderDashboard();
     renderEstadisticas();
+  }
+
+  function borrarConsultaSeleccionada() {
+    if (!isAdmin()) return;
+    const sel = document.getElementById('admin-delete-consulta');
+    const id = sel ? parseInt(sel.value, 10) : NaN;
+    if (!id) {
+      alert('Selecciona una consulta para borrar.');
+      return;
+    }
+    eliminarConsulta(id);
   }
 
   function borrarHistorialConsultas() {
@@ -1872,6 +1996,14 @@
 
     const btnBorrarHistorial = document.querySelector('button[onclick="borrarHistorialConsultas()"]');
     if (btnBorrarHistorial) btnBorrarHistorial.style.display = isAdm ? 'inline-flex' : 'none';
+
+    const adminPacientes = document.getElementById('admin-actions-pacientes');
+    if (adminPacientes) adminPacientes.style.display = isAdm ? 'flex' : 'none';
+
+    const adminConsultas = document.getElementById('admin-actions-consultas');
+    if (adminConsultas) adminConsultas.style.display = isAdm ? 'flex' : 'none';
+
+    actualizarSelectsBorrado();
   }
 
   function hideLoader() {
