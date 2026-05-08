@@ -1,0 +1,1916 @@
+ <!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OdontoConsulta - Historial y Consultas</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root{
+      --bg: #0b1220;
+      --panel: rgba(255,255,255,0.06);
+      --panel-2: rgba(255,255,255,0.09);
+      --border: rgba(255,255,255,0.12);
+      --text: rgba(255,255,255,0.92);
+      --muted: rgba(255,255,255,0.65);
+      --muted2: rgba(255,255,255,0.45);
+      --brand: #3aa0ff;
+      --brand-2: #60d3a6;
+      --brand-3: #ffcc66;
+      --danger: #ff6b6b;
+      --shadow: 0 10px 30px rgba(0,0,0,0.25);
+      --ring: rgba(58,160,255,0.28);
+      --focus: rgba(96,211,166,0.28);
+    }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: radial-gradient(1000px 500px at 20% 0%, rgba(58,160,255,0.18), transparent 55%),
+                  radial-gradient(900px 480px at 85% 10%, rgba(96,211,166,0.16), transparent 60%),
+                  linear-gradient(180deg, #070b14 0%, #0b1220 40%, #0b1220 100%);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+
+    .app { display: flex; min-height: 100vh; }
+
+    /* Loader odontológico */
+    .app-loading { overflow: hidden; }
+
+    .page-loader{
+      position: fixed;
+      inset: 0;
+      z-index: 12000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background:
+        radial-gradient(1100px 560px at 14% -8%, rgba(58,160,255,0.28), transparent 64%),
+        radial-gradient(1000px 520px at 88% 6%, rgba(96,211,166,0.2), transparent 64%),
+        linear-gradient(180deg, #03060d 0%, #0a111f 100%);
+      opacity: 1;
+      visibility: visible;
+      transition: opacity .6s ease, visibility .6s ease;
+      overflow: hidden;
+    }
+    .page-loader.hide{
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .loader-card{
+      position: relative;
+      width: min(92vw, 420px);
+      border-radius: 26px;
+      background:
+        linear-gradient(160deg, rgba(255,255,255,0.18), rgba(255,255,255,0.04));
+      backdrop-filter: blur(22px);
+      padding: 30px 24px 24px;
+      text-align: center;
+      box-shadow: 0 30px 60px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.16);
+      overflow: hidden;
+      animation: cardFloat 3s ease-in-out infinite;
+    }
+    .loader-card::before{
+      content:'';
+      position:absolute;
+      inset:-45% -20% auto;
+      height:74%;
+      background: radial-gradient(closest-side, rgba(255,255,255,.22), transparent 72%);
+      transform: rotate(-8deg);
+      pointer-events:none;
+    }
+    .loader-card::after{
+      content:'';
+      position:absolute;
+      inset:0;
+      padding:1px;
+      border-radius:26px;
+      background: conic-gradient(from 0deg, rgba(71,178,255,.45), rgba(109,224,181,.35), rgba(71,178,255,.45));
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      animation: borderSpin 6s linear infinite;
+      opacity:.75;
+      pointer-events:none;
+    }
+
+    .loader-icon{
+      position: relative;
+      width: 88px;
+      height: 88px;
+      margin: 0 auto 14px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-size: 38px;
+      color: #c2ecff;
+      border: 2px solid rgba(141,208,255,.72);
+      background: radial-gradient(circle at 30% 30%, rgba(71,178,255,.46), rgba(71,178,255,.13));
+      box-shadow: 0 0 0 12px rgba(58,160,255,.16), 0 10px 26px rgba(0,0,0,.25);
+      animation: pulseTooth 1.5s ease-in-out infinite;
+    }
+    .loader-icon::before{
+      content:'';
+      position:absolute;
+      inset:-10px;
+      border-radius:50%;
+      border: 2px dashed rgba(109,224,181,.62);
+      animation: spinRing 2.6s linear infinite;
+    }
+    .loader-icon::after{
+      content:'';
+      position:absolute;
+      inset:-18px;
+      border-radius:50%;
+      border: 1.5px solid rgba(141,208,255,.35);
+      animation: spinRingReverse 4.2s linear infinite;
+    }
+
+    .loader-title{
+      font-size: 19px;
+      font-weight: 900;
+      color: #fff;
+      margin-bottom: 12px;
+      letter-spacing: .3px;
+      text-shadow: 0 2px 10px rgba(0,0,0,.35);
+    }
+
+    .loader-detail{
+      height: 2px;
+      width: 62%;
+      margin: 0 auto 12px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, rgba(71,178,255,.2), rgba(109,224,181,.95), rgba(71,178,255,.2));
+      animation: detailPulse 1.8s ease-in-out infinite;
+    }
+
+    .loader-bar{
+      width: 100%;
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.14);
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,.25);
+      box-shadow: inset 0 1px 3px rgba(0,0,0,.25);
+    }
+    .loader-bar > span{
+      display: block;
+      height: 100%;
+      width: 35%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #47b2ff, #6de0b5, #8dd0ff);
+      filter: saturate(1.1);
+      animation: slideBar 1s ease-in-out infinite;
+    }
+
+    @keyframes pulseTooth{
+      0%,100%{ transform: scale(1); box-shadow: 0 0 0 10px rgba(58,160,255,.13); }
+      50%{ transform: scale(1.09); box-shadow: 0 0 0 15px rgba(58,160,255,.22); }
+    }
+    @keyframes spinRing{
+      from{ transform: rotate(0deg); }
+      to{ transform: rotate(360deg); }
+    }
+    @keyframes spinRingReverse{
+      from{ transform: rotate(360deg); }
+      to{ transform: rotate(0deg); }
+    }
+    @keyframes slideBar{
+      0%{ transform: translateX(-120%); }
+      100%{ transform: translateX(340%); }
+    }
+    @keyframes cardFloat{
+      0%,100%{ transform: translateY(0px); }
+      50%{ transform: translateY(-2px); }
+    }
+    @keyframes detailPulse{
+      0%,100%{ opacity:.55; transform: scaleX(.92); }
+      50%{ opacity:1; transform: scaleX(1); }
+    }
+    @keyframes borderSpin{
+      from{ transform: rotate(0deg); }
+      to{ transform: rotate(360deg); }
+    }
+
+    /* SIDEBAR */
+    .sidebar {
+
+      width: 240px;
+      background: rgba(255,255,255,0.04);
+      backdrop-filter: blur(10px);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+    .logo {
+      padding: 20px 16px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .logo i { font-size: 22px; color: #185FA5; }
+    .logo-title { font-size: 15px; font-weight: 700; color: var(--text); }
+    .logo-sub { font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+    .nav { padding: 12px 8px; flex: 1; }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 6px;
+      transition: all 0.15s;
+      user-select: none;
+    }
+    .nav-item:hover { background: rgba(58,160,255,0.12); color: var(--brand); }
+    .nav-item.active { background: rgba(58,160,255,0.18); color: var(--brand); font-weight: 800; border: 1px solid rgba(58,160,255,0.25); }
+    .nav-item i { font-size: 18px; }
+
+    .sidebar-footer { padding: 14px 16px; border-top: 1px solid var(--border); }
+    .sidebar-footer .doc-name { font-size: 13px; font-weight: 600; color: var(--text); }
+    .sidebar-footer .doc-esp { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+    /* MAIN */
+    .main { flex: 1; display: flex; flex-direction: column; }
+    .topbar {
+      padding: 14px 24px;
+      background: rgba(255,255,255,0.05);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .topbar-title { font-size: 16px; font-weight: 800; color: var(--text); }
+    .topbar-date { font-size: 12px; color: var(--muted); white-space: nowrap; }
+
+    .role-controls{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex-wrap: wrap;
+    }
+    .role-badge{
+      padding: 5px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 900;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(255,255,255,0.08);
+      color: var(--text);
+    }
+    .content { flex: 1; overflow-y: auto; padding: 24px; }
+
+    .content::before{content:'';position:absolute;display:none;}
+
+    /* SECTIONS */
+    .section { display: none; }
+    .section.active { display: block; }
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .section-header h2 { font-size: 15px; font-weight: 800; color: var(--text); }
+
+    /* CARDS */
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px 20px;
+      box-shadow: 0 1px 0 rgba(255,255,255,0.02) inset;
+    }
+
+    .grid3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-bottom: 22px;
+    }
+
+    .stat-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px 20px;
+    }
+    .stat-blue { border-top: 3px solid #378ADD; }
+    .stat-teal { border-top: 3px solid #1D9E75; }
+    .stat-amber { border-top: 3px solid #EF9F27; }
+
+    .card-label { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+    .card-value { font-size: 28px; font-weight: 950; color: var(--text); }
+    .card-sub { font-size: 12px; color: var(--muted2); margin-top: 3px; }
+
+    /* BUTTONS */
+    .btn {
+      padding: 9px 16px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      transition: all 0.15s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn:hover { background: rgba(255,255,255,0.10); }
+    .btn-primary { background: #185FA5; color: #fff; border-color: rgba(58,160,255,0.55); }
+    .btn-primary:hover { background: #0C447C; }
+
+    /* FORMS */
+    .form-group { margin-bottom: 14px; }
+    label { display: block; font-size: 12px; color: var(--muted); font-weight: 800; margin-bottom: 6px; }
+    input, select, textarea {
+      width: 100%;
+      padding: 10px 12px;
+      font-size: 13px;
+      border: 1px solid rgba(255,255,255,0.16);
+      border-radius: 10px;
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      font-family: inherit;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: rgba(58,160,255,0.65);
+      box-shadow: 0 0 0 3px var(--ring);
+    }
+    textarea { resize: vertical; min-height: 90px; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+    /* LISTS */
+    .patient-list { display: flex; flex-direction: column; gap: 10px; }
+    .patient-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .patient-card:hover { border-color: rgba(58,160,255,0.55); box-shadow: 0 2px 18px rgba(58,160,255,0.18); }
+
+    .avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: rgba(58,160,255,0.16);
+      color: #9fd2ff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 800;
+      flex-shrink: 0;
+      border: 1px solid rgba(58,160,255,0.25);
+    }
+
+    .text-muted { color: var(--muted); }
+    .text-muted-2 { color: var(--muted2); }
+    .text-strong { color: var(--text); font-weight: 950; }
+
+    /* Progress / KPIs */
+    .progress {
+      width: 100%;
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.08);
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.10);
+    }
+    .progress > .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, rgba(24,95,165,0.95), rgba(58,160,255,0.95));
+      border-radius: 999px;
+      transition: width 0.5s ease;
+    }
+
+    /* Perfil modal */
+    .profile-hero {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+    .profile-hero .avatar-xl {
+      width: 56px;
+      height: 56px;
+      font-size: 16px;
+    }
+
+    /* kv table (modal perfil) */
+    .kv-table {
+      width: 100%;
+      font-size: 13px;
+      border-collapse: collapse;
+      margin-bottom: 14px;
+    }
+    .kv-table td { padding: 6px 0; }
+    .kv-key { color: var(--muted); font-weight: 900; width: 38%; }
+    .kv-val { color: var(--text); font-weight: 800; }
+    .text-muted-3 { color: rgba(255,255,255,0.38); }
+
+
+    /* STATISTICS */
+    .stat-progress {
+      height: 8px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 10px;
+    }
+    .stat-progress-bar {
+      height: 100%;
+      background: #185FA5;
+      border-radius: 999px;
+      transition: width 0.5s ease;
+    }
+    .stat-last { font-size: 11px; color: rgba(255,255,255,0.55); font-weight: 700; }
+
+
+    /* Timeline tweaks */
+    .timeline .badge { vertical-align: middle; }
+    .timeline-em { color: var(--muted); font-style: italic; }
+
+    .note-line { font-size: 12px; color: var(--muted); margin-top: 6px; line-height: 1.6; }
+    .note-line strong { font-size: 11px; color: var(--muted); }
+    .patient-info { flex: 1; }
+    .patient-name { font-size: 14px; font-weight: 950; color: var(--text); }
+    .patient-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+    /* BADGES */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+    .badge-blue { background: #E6F1FB; color: #185FA5; }
+    .badge-teal { background: #E1F5EE; color: #0F6E56; }
+    .badge-amber { background: #FAEEDA; color: #854F0B; }
+    .badge-red { background: #FCEBEB; color: #A32D2D; }
+
+    /* HISTORY */
+    .history-list { display: flex; flex-direction: column; gap: 10px; }
+    .history-item {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 18px;
+    }
+    .history-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 8px; gap: 12px; }
+    .history-diag { font-size: 14px; font-weight: 950; color: var(--text); }
+    .history-notes { font-size: 12px; color: var(--muted); margin-top: 6px; line-height: 1.6; }
+
+    /* SEARCH + FILTER */
+    .search-box { display: flex; gap: 10px; margin-bottom: 16px; }
+    .search-box input { flex: 1; }
+
+    .filter-bar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+    .pill {
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 12px;
+      cursor: pointer;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(255,255,255,0.06);
+      color: var(--muted);
+      transition: all 0.15s;
+      font-weight: 800;
+      user-select: none;
+    }
+    .pill:hover { border-color: rgba(58,160,255,0.55); color: var(--brand); }
+    .pill.active { background: rgba(58,160,255,0.95); color: #fff; border-color: rgba(58,160,255,0.95); }
+
+    /* EMPTY */
+    .empty { text-align: center; padding: 48px 0; color: var(--muted); font-size: 13px; }
+    .empty i { font-size: 40px; margin-bottom: 12px; display: block; opacity: 0.9; }
+
+    /* MODAL */
+    .modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100; align-items: center; justify-content: center; padding: 16px; }
+    .modal-bg.open { display: flex; }
+    .modal {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+      backdrop-filter: blur(14px);
+      border-radius: 14px;
+      padding: 24px;
+      width: 560px;
+      max-width: 95vw;
+      max-height: 88vh;
+      overflow-y: auto;
+      box-shadow: var(--shadow);
+    }
+    .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+    .modal-header h3 { font-size: 15px; font-weight: 950; color: var(--text); }
+    .close-btn { background: none; border: none; cursor: pointer; color: var(--muted2); font-size: 22px; display: flex; align-items: center; padding: 2px; transition: color 0.15s; }
+    .close-btn:hover { color: var(--text); }
+
+    .success-msg { background: #E1F5EE; color: #0F6E56; border-radius: 10px; padding: 10px 14px; font-size: 13px; display: none; margin-bottom: 14px; border: 1px solid #9FE1CB; }
+    .success-msg.show { display: flex; align-items: center; gap: 8px; }
+    .error-msg { background: #FCEBEB; color: #A32D2D; border-radius: 10px; padding: 10px 14px; font-size: 13px; display: none; margin-bottom: 14px; border: 1px solid #F7C1C1; }
+    .error-msg.show { display: flex; align-items: center; gap: 8px; }
+    .divider { height: 1px; background: rgba(255,255,255,0.14); margin: 18px 0; }
+
+    /* SCROLLBAR */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.16); border-radius: 999px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.22); }
+
+    /* TIMELINE (perfil) */
+    .timeline { position: relative; padding-left: 24px; }
+    .timeline::before { content: ''; position: absolute; left: 11px; top: 0; bottom: 0; width: 1px; background: rgba(255,255,255,0.14); }
+    .tl-item { position: relative; margin-bottom: 18px; }
+    .tl-dot { position: absolute; left: -21px; top: 6px; width: 12px; height: 12px; border-radius: 50%; background: var(--brand); border: 2px solid rgba(7,11,20,0.95); }
+    .tl-date { font-size: 11px; color: var(--muted2); margin-bottom: 4px; }
+    .tl-title { font-size: 13px; font-weight: 950; color: var(--text); margin-bottom: 2px; }
+    .tl-body { font-size: 12px; color: var(--muted); margin-top: 4px; line-height: 1.55; }
+
+    @media (max-width: 980px) {
+      .sidebar {
+        display: flex;
+        position: fixed;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 78px;
+        z-index: 200;
+        border-right: 1px solid var(--border);
+      }
+      .logo {
+        padding: 12px 8px;
+        justify-content: center;
+      }
+      .logo > div { display: none; }
+      .sidebar-footer { display: none; }
+      .nav { padding: 8px 6px; }
+      .nav-item {
+        justify-content: center;
+        padding: 10px 6px;
+      }
+      .nav-item i { font-size: 20px; }
+      .nav-item { font-size: 0; }
+
+      .main { margin-left: 78px; }
+      .grid3 { grid-template-columns: 1fr; }
+      .two-col { grid-template-columns: 1fr; }
+      .content { padding: 16px; }
+      .topbar { padding: 12px 14px; flex-wrap: wrap; align-items: flex-start; }
+      .topbar-title { font-size: 15px; }
+      .topbar-date { font-size: 11px; }
+      .card, .stat-card, .history-item, .patient-card { padding: 14px; border-radius: 12px; }
+      .section-header { margin-bottom: 14px; }
+      .section-header h2 { font-size: 14px; }
+      .search-box { margin-bottom: 12px; }
+      .filter-bar { margin-bottom: 12px; gap: 6px; }
+      .pill { padding: 6px 11px; font-size: 11px; }
+      .modal { width: 100%; max-width: 100%; padding: 16px; border-radius: 12px; }
+      .loader-card{ padding: 18px 14px; border-radius: 14px; }
+      .loader-icon{ width: 56px; height: 56px; font-size: 28px; }
+      .loader-title{ font-size: 15px; }
+    }
+
+    @media (max-width: 560px) {
+      .sidebar { width: 64px; }
+      .main { margin-left: 64px; }
+      .content { padding: 12px; }
+      .btn { width: 100%; justify-content: center; }
+      .section-header { gap: 8px; }
+      .search-box { flex-direction: column; }
+      .patient-name { font-size: 13px; }
+      .patient-meta { font-size: 11px; }
+      .history-diag { font-size: 13px; }
+      .history-notes { font-size: 11px; }
+      .topbar { gap: 6px; }
+      .loader-title{ font-size: 14px; }
+      .role-controls { width: 100%; }
+      .role-controls .btn { width: auto; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="page-loader" class="page-loader" role="status" aria-live="polite" aria-label="Cargando OdontoConsulta">
+  <div class="loader-card">
+    <div class="loader-icon"><i class="ti ti-tooth"></i></div>
+    <div class="loader-title">Preparando...</div>
+    <div class="loader-detail"></div>
+  </div>
+</div>
+
+<div class="app">
+
+  <div class="sidebar">
+
+    <div class="logo">
+      <i class="ti ti-tooth"></i>
+      <div>
+        <div class="logo-title">OdontoConsulta</div>
+        <div class="logo-sub">Historial clínico dental</div>
+      </div>
+    </div>
+    <nav class="nav">
+      <div class="nav-item active" data-section="dashboard" onclick="navigate('dashboard', this)">
+        <i class="ti ti-layout-dashboard"></i> Inicio
+      </div>
+      <div class="nav-item" data-section="patients" onclick="navigate('patients', this)">
+        <i class="ti ti-users"></i> Pacientes
+      </div>
+      <div class="nav-item" data-section="nueva" onclick="navigate('nueva', this)">
+        <i class="ti ti-stethoscope"></i> Nueva consulta
+      </div>
+      <div class="nav-item" data-section="agenda" onclick="navigate('agenda', this)">
+        <i class="ti ti-calendar-event"></i> Agenda
+      </div>
+      <div class="nav-item" data-section="historial" onclick="navigate('historial', this)">
+        <i class="ti ti-clipboard-list"></i> Historial
+      </div>
+      <div class="nav-item" data-section="estadisticas" onclick="navigate('estadisticas', this)">
+        <i class="ti ti-chart-bar"></i> Estadísticas
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="doc-name">Clínica Odontológica</div>
+      <div class="doc-esp">Registro y seguimiento</div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="topbar">
+      <span class="topbar-title" id="topbar-title">Inicio</span>
+      <div class="role-controls">
+        <span class="role-badge" id="role-badge">Modo cliente</span>
+        <button class="btn" id="btn-client-register" onclick="openClientAuthModal('register')"><i class="ti ti-user-plus"></i> Registro cliente</button>
+        <button class="btn" id="btn-client-login" onclick="openClientAuthModal('login')"><i class="ti ti-login"></i> Login cliente</button>
+        <button class="btn" id="btn-client-logout" onclick="logoutClient()" style="display:none;"><i class="ti ti-logout"></i> Salir cliente</button>
+        <button class="btn btn-primary" id="btn-admin-login" onclick="loginAdmin()"><i class="ti ti-lock"></i> Entrar Admin</button>
+        <button class="btn" id="btn-admin-logout" onclick="logoutAdmin()" style="display:none;"><i class="ti ti-lock-open"></i> Salir Admin</button>
+        <span class="topbar-date" id="topbar-date"></span>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- DASHBOARD -->
+      <div class="section active" id="sec-dashboard">
+        <div class="grid3">
+          <div class="stat-card stat-blue">
+            <div class="card-label">Pacientes</div>
+            <div class="card-value" id="stat-total">0</div>
+            <div class="card-sub">registrados</div>
+          </div>
+          <div class="stat-card stat-teal">
+            <div class="card-label">Consultas hoy</div>
+            <div class="card-value" id="stat-hoy">0</div>
+            <div class="card-sub" id="stat-hoy-fecha"></div>
+          </div>
+          <div class="stat-card stat-amber">
+            <div class="card-label">Total consultas</div>
+            <div class="card-value" id="stat-total-consultas">0</div>
+            <div class="card-sub">realizadas</div>
+          </div>
+        </div>
+
+        <div class="section-header">
+          <h2>Consultas recientes</h2>
+          <button class="btn btn-primary" onclick="navigate('nueva', document.querySelector('[data-section=nueva]'))">
+            <i class="ti ti-plus"></i> Nueva consulta
+          </button>
+        </div>
+
+        <div id="recent-list" class="history-list"></div>
+      </div>
+
+      <!-- PACIENTES -->
+      <div class="section" id="sec-patients">
+        <div class="section-header">
+          <h2>Pacientes registrados</h2>
+          <button class="btn btn-primary" onclick="openModalPaciente()">
+            <i class="ti ti-plus"></i> Agregar paciente
+          </button>
+        </div>
+
+        <div class="search-box">
+          <input type="text" id="search-paciente" placeholder="Buscar por nombre o DNI..." oninput="renderPacientes()">
+        </div>
+
+        <div id="patients-list" class="patient-list"></div>
+      </div>
+
+      <!-- NUEVA CONSULTA -->
+      <div class="section" id="sec-nueva">
+        <div class="section-header">
+          <h2>Registrar consulta odontológica</h2>
+        </div>
+
+        <div class="card">
+          <div id="msg-success" class="success-msg"><i class="ti ti-check"></i> Consulta registrada exitosamente.</div>
+
+        <div class="form-group">
+          <label>Paciente *</label>
+          <select id="form-paciente">
+            <option value="">Seleccionar paciente...</option>
+          </select>
+          <div style="margin-top:8px;">
+            <button class="btn" id="btn-client-quick-register" onclick="openClientQuickRegister()" style="display:none;">
+              <i class="ti ti-user-plus"></i> Registrarme como cliente
+            </button>
+          </div>
+        </div>
+
+          <div class="two-col">
+            <div class="form-group">
+              <label>Fecha *</label>
+              <input type="date" id="form-fecha" />
+            </div>
+            <div class="form-group">
+              <label>Tipo *</label>
+              <select id="form-tipo">
+                <option value="Limpieza">Limpieza</option>
+                <option value="Control">Control</option>
+                <option value="Urgencia">Urgencia</option>
+                <option value="Ortodoncia">Ortodoncia</option>
+                <option value="Endodoncia">Endodoncia</option>
+                <option value="Estética">Estética</option>
+                <option value="Cirugía">Cirugía</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Motivo de consulta *</label>
+            <input type="text" id="form-motivo" placeholder="Ej: Dolor en muela, sensibilidad, revisión...">
+          </div>
+
+          <div class="form-group">
+            <label>Diagnóstico *</label>
+            <input type="text" id="form-diag" placeholder="Ej: Caries, gingivitis, pulpitis, etc.">
+          </div>
+
+          <div class="form-group">
+            <label>Procedimiento / Tratamiento realizado</label>
+            <textarea id="form-tratamiento" placeholder="Describe el procedimiento realizado, material, dosis si aplica, recomendaciones..." style="min-height:100px;"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label>Receta / Indicaciones</label>
+            <textarea id="form-receta" placeholder="Medicamentos indicados, cuidados, citas futuras..." style="min-height:90px;"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label>Notas adicionales</label>
+            <textarea id="form-notas" placeholder="Observaciones del odontólogo/a, evolución, hallazgos adicionales..." style="min-height:90px;"></textarea>
+          </div>
+
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="btn btn-primary" onclick="guardarConsulta()">
+              <i class="ti ti-device-floppy"></i> Guardar consulta
+            </button>
+            <button class="btn" onclick="limpiarFormulario()">Limpiar</button>
+            <button class="btn" onclick="resetDemo()" title="Borra datos guardados en este navegador">
+              <i class="ti ti-trash"></i> Eliminar
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- AGENDA -->
+      <div class="section" id="sec-agenda">
+        <div class="section-header">
+          <h2>Agenda de citas</h2>
+        </div>
+
+        <div class="card" style="margin-bottom:12px;">
+          <div class="two-col">
+            <div class="form-group">
+              <label>Paciente *</label>
+              <select id="agenda-paciente"></select>
+            </div>
+            <div class="form-group">
+              <label>Fecha y hora *</label>
+              <input type="datetime-local" id="agenda-fecha" />
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="btn btn-primary" onclick="crearCita()"><i class="ti ti-plus"></i> Crear cita</button>
+          </div>
+        </div>
+
+        <div class="search-box">
+          <input type="text" id="search-agenda" placeholder="Buscar cita por paciente..." oninput="renderAgenda()">
+        </div>
+
+        <div id="agenda-list" class="history-list"></div>
+      </div>
+
+      <!-- HISTORIAL -->
+      <div class="section" id="sec-historial">
+        <div class="section-header">
+          <h2>Historial clínico</h2>
+        </div>
+
+        <div class="search-box">
+          <input type="text" id="search-historial" placeholder="Buscar por paciente (nombre/DNI) o diagnóstico..." oninput="renderHistorial()">
+        </div>
+
+        <div class="filter-bar">
+          <span class="pill active" onclick="filtroTipo('', this)">Todos</span>
+          <span class="pill" onclick="filtroTipo('Limpieza', this)">Limpieza</span>
+          <span class="pill" onclick="filtroTipo('Control', this)">Control</span>
+          <span class="pill" onclick="filtroTipo('Urgencia', this)">Urgencia</span>
+          <span class="pill" onclick="filtroTipo('Ortodoncia', this)">Ortodoncia</span>
+          <span class="pill" onclick="filtroTipo('Endodoncia', this)">Endodoncia</span>
+          <span class="pill" onclick="filtroTipo('Estética', this)">Estética</span>
+          <span class="pill" onclick="filtroTipo('Cirugía', this)">Cirugía</span>
+        </div>
+
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+          <button class="btn" onclick="borrarHistorialConsultas()">
+            <i class="ti ti-eraser"></i> Borrar historial
+          </button>
+          <span class="badge badge-teal"><i class="ti ti-check"></i> Atendido</span>
+        </div>
+
+        <div id="historial-list" class="history-list"></div>
+      </div>
+
+      <!-- ESTADÍSTICAS -->
+      <div class="section" id="sec-estadisticas">
+        <div class="section-header">
+          <h2>Estadísticas por paciente</h2>
+        </div>
+        <div id="stats-list" class="patient-list"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- MODAL AGREGAR PACIENTE -->
+<div class="modal-bg" id="modal-paciente">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Agregar paciente</h3>
+      <button class="close-btn" onclick="closeModal('modal-paciente')"><i class="ti ti-x"></i></button>
+    </div>
+
+    <div id="modal-msg" class="error-msg"></div>
+
+    <div class="form-group">
+      <label>Nombre completo *</label>
+      <input type="text" id="mp-nombre" placeholder="Ej: María García López">
+    </div>
+
+    <div class="two-col">
+      <div class="form-group">
+        <label>DNI / Documento *</label>
+        <input type="text" id="mp-dni" placeholder="12345678" inputmode="numeric">
+      </div>
+      <div class="form-group">
+        <label>Fecha de nacimiento</label>
+        <input type="date" id="mp-fecha" />
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="form-group">
+        <label>Género</label>
+        <select id="mp-genero">
+          <option value="M">Masculino</option>
+          <option value="F">Femenino</option>
+          <option value="O">Otro</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Teléfono</label>
+        <input type="text" id="mp-telefono" placeholder="999 888 777" />
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Alergias conocidas</label>
+      <input type="text" id="mp-alergias" placeholder="Ej: Penicilina, Ibuprofeno, Ninguna">
+    </div>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;">
+      <button class="btn btn-primary" onclick="guardarPaciente()"><i class="ti ti-check"></i> Guardar paciente</button>
+      <button class="btn" onclick="closeModal('modal-paciente')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PERFIL PACIENTE -->
+<div class="modal-bg" id="modal-perfil">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="perfil-nombre-title">Perfil del paciente</h3>
+      <button class="close-btn" onclick="closeModal('modal-perfil')"><i class="ti ti-x"></i></button>
+    </div>
+    <div id="perfil-content"></div>
+  </div>
+</div>
+
+<!-- MODAL AUTH CLIENTE -->
+<div class="modal-bg" id="modal-client-auth">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="client-auth-title">Registro cliente</h3>
+      <button class="close-btn" onclick="closeModal('modal-client-auth')"><i class="ti ti-x"></i></button>
+    </div>
+
+    <div id="client-auth-msg" class="error-msg"></div>
+
+    <div id="client-register-fields">
+      <div class="form-group">
+        <label>Nombre completo *</label>
+        <input type="text" id="cr-nombre" placeholder="Ej: Juan Pérez">
+      </div>
+      <div class="two-col">
+        <div class="form-group">
+          <label>DNI *</label>
+          <input type="text" id="cr-dni" placeholder="12345678">
+        </div>
+        <div class="form-group">
+          <label>Teléfono *</label>
+          <input type="text" id="cr-telefono" placeholder="999 888 777">
+        </div>
+      </div>
+      <div class="two-col">
+        <div class="form-group">
+          <label>Email *</label>
+          <input type="email" id="cr-email" placeholder="correo@dominio.com">
+        </div>
+        <div class="form-group">
+          <label>Contraseña *</label>
+          <input type="password" id="cr-pass" placeholder="Mínimo 6 caracteres">
+        </div>
+      </div>
+    </div>
+
+    <div id="client-login-fields" style="display:none;">
+      <div class="form-group">
+        <label>DNI o Email *</label>
+        <input type="text" id="cl-user" placeholder="DNI o correo">
+      </div>
+      <div class="form-group">
+        <label>Contraseña *</label>
+        <input type="password" id="cl-pass" placeholder="Tu contraseña">
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;">
+      <button class="btn btn-primary" id="btn-client-auth-submit" onclick="submitClientAuth()"><i class="ti ti-check"></i> Crear cuenta</button>
+      <button class="btn" onclick="toggleClientAuthMode()">Cambiar a login/registro</button>
+    </div>
+  </div>
+</div>
+
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+  // ====== Persistencia Firebase Firestore ======
+  const LS_KEY = 'odontoconsulta_v1';
+  const ADMIN_PASS = 'dan12';
+  const ADMIN_SESSION_KEY = 'odontoconsulta_admin_session';
+  const CLIENT_SESSION_KEY = 'odontoconsulta_client_session';
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDXQOKA2O-EcEF7kMFZCuC2PK3ekZT6lv4",
+    authDomain: "daniel-web-8a1ae.firebaseapp.com",
+    projectId: "daniel-web-8a1ae",
+    storageBucket: "daniel-web-8a1ae.firebasestorage.app",
+    messagingSenderId: "192301260205",
+    appId: "1:192301260205:web:bfbf0f40d87ae696391524",
+    measurementId: "G-14N78QB226"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+  const DATA_REF = db.collection("odonto").doc("principal");
+  let appRole = 'client';
+  let currentClientId = null;
+  let clientAuthMode = 'register';
+
+  const demo = {
+    pacientes: [
+      { id: 1, nombre: 'Ana López Torres',     dni: '45123678', nacimiento: '1985-03-14', genero: 'F', telefono: '987 654 321', alergias: 'Penicilina', email: 'ana@correo.com', password: '123456' },
+      { id: 2, nombre: 'Carlos Mendoza Ríos',  dni: '38765432', nacimiento: '1978-07-22', genero: 'M', telefono: '965 432 198', alergias: 'Ninguna', email: 'carlos@correo.com', password: '123456' },
+      { id: 3, nombre: 'Sofía Vargas Pinto',   dni: '52987123', nacimiento: '1995-11-05', genero: 'F', telefono: '943 217 865', alergias: 'Aspirina, Ibuprofeno', email: 'sofia@correo.com', password: '123456' }
+    ],
+    consultas: [
+      { id: 1, codigo: 'ODC-20260415-0001', pacienteId: 1, fecha: '2026-04-15', tipo: 'Control',  motivo: 'Revisión por sensibilidad', diagnostico: 'Gingivitis leve', tratamiento: 'Profilaxis + instrucción de higiene', receta: 'Enjuague con clorhexidina 0.12% por 7 días', notas: 'Control en 30 días', recomendaciones: 'Cepillado suave 3 veces al día y uso de hilo dental.', atendido: true },
+      { id: 2, codigo: 'ODC-20260420-0002', pacienteId: 2, fecha: '2026-04-20', tipo: 'Limpieza', motivo: 'Limpieza programada', diagnostico: 'Cálculo dental', tratamiento: 'Detartraje y pulido', receta: 'Fluor tópico 2 veces/semana', notas: '', recomendaciones: 'Evitar bebidas pigmentantes por 24h.', atendido: false },
+      { id: 3, codigo: 'ODC-20260501-0003', pacienteId: 1, fecha: '2026-05-01', tipo: 'Control',  motivo: 'Evolución de tratamiento', diagnostico: 'Mejoría de encías', tratamiento: 'Refuerzo de técnica de cepillado + profilaxis ligera', receta: '', notas: 'Mejoría notable', recomendaciones: 'Continuar técnica de Bass y control en 30 días.', atendido: true },
+      { id: 4, codigo: 'ODC-20260503-0004', pacienteId: 3, fecha: '2026-05-03', tipo: 'Urgencia', motivo: 'Dolor dental', diagnostico: 'Pulpitis reversible', tratamiento: 'Exodoncia no; endodoncia/medicación según evaluación inicial', receta: 'Analgésicos según tolerancia', notas: 'Evitar AINEs si alergia', recomendaciones: 'Dieta blanda y no masticar del lado afectado.', atendido: false },
+      { id: 5, codigo: 'ODC-20260507-0005', pacienteId: 2, fecha: '2026-05-07', tipo: 'Endodoncia', motivo: 'Tratamiento de conducto', diagnostico: 'Caries profunda - necesidad de endodoncia', tratamiento: 'Aislamiento, preparación de conductos y medicación', receta: 'Antiinflamatorio solo si no hay contraindicaciones', notas: 'Programar segunda sesión', recomendaciones: 'No comer hasta pasar anestesia. Higiene estricta.', atendido: false }
+    ],
+    nextPacienteId: 4,
+    nextConsultaId: 6
+  };
+
+  let pacientes = [];
+  let consultas = [];
+  let citas = [];
+  let nextPacienteId = 1;
+  let nextConsultaId = 1;
+  let nextCitaId = 1;
+  let filtroActual = '';
+
+  async function loadData() {
+    try {
+      const snap = await DATA_REF.get();
+
+      if (!snap.exists) {
+        resetDemoData(false);
+        await saveData();
+        return;
+      }
+
+      const data = snap.data() || {};
+      pacientes = Array.isArray(data.pacientes) ? data.pacientes : [];
+      consultas = Array.isArray(data.consultas) ? data.consultas.map(c => ({ ...c, atendido: !!c.atendido })) : [];
+      citas = Array.isArray(data.citas) ? data.citas : [];
+
+      nextPacienteId = Number.isFinite(data.nextPacienteId) ? data.nextPacienteId : (pacientes.reduce((m,p)=>Math.max(m,p.id||0),0)+1);
+      nextConsultaId = Number.isFinite(data.nextConsultaId) ? data.nextConsultaId : (consultas.reduce((m,c)=>Math.max(m,c.id||0),0)+1);
+      nextCitaId = Number.isFinite(data.nextCitaId) ? data.nextCitaId : (citas.reduce((m,c)=>Math.max(m,c.id||0),0)+1);
+    } catch (e) {
+      console.error("Error cargando Firestore:", e);
+      alert("No se pudo conectar con Firestore. Revisa las reglas o internet.");
+      resetDemoData(false);
+    }
+  }
+
+  async function saveData() {
+    try {
+      const payload = {
+        pacientes,
+        consultas,
+        citas,
+        nextPacienteId,
+        nextConsultaId,
+        nextCitaId,
+        version: 1,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
+      await DATA_REF.set(payload);
+    } catch (e) {
+      console.error("Error guardando Firestore:", e);
+      alert("No se pudo guardar en Firestore. Revisa las reglas.");
+    }
+  }
+
+  function resetDemoData(alsoSave=true) {
+    pacientes = JSON.parse(JSON.stringify(demo.pacientes));
+    consultas = JSON.parse(JSON.stringify(demo.consultas)).map(c => ({ ...c, atendido: false }));
+    citas = [];
+    nextPacienteId = demo.nextPacienteId;
+    nextConsultaId = demo.nextConsultaId;
+    nextCitaId = 1;
+    if (alsoSave) saveData();
+    filtroActual = '';
+  }
+
+  // ====== Helpers ======
+  function calcEdad(nacimiento) {
+    if (!nacimiento) return '—';
+    const hoy = new Date();
+    const n = new Date(nacimiento);
+    let edad = hoy.getFullYear() - n.getFullYear();
+    if (hoy < new Date(hoy.getFullYear(), n.getMonth(), n.getDate())) edad--;
+    return edad;
+  }
+
+  function initiales(nombre) {
+    if (!nombre) return '';
+    return nombre.split(' ').filter(Boolean).slice(0,2).map(n => n[0]).join('').toUpperCase();
+  }
+
+  const MESES2 = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  const MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  function formatDate(d) {
+    if (!d) return '';
+    const [y, m, dd] = d.split('-');
+    return `${parseInt(dd,10)} ${MESES[parseInt(m,10)-1]} ${y}`;
+  }
+
+  function tipoBadge(t) {
+    if (t === 'Urgencia') return 'badge-amber';
+    if (t === 'Control') return 'badge-teal';
+    if (t === 'Cirugía') return 'badge-red';
+    return 'badge-blue';
+  }
+
+  // ====== Navegación ======
+  function navigate(section, el) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+    document.getElementById('sec-' + section).classList.add('active');
+    if (el) el.classList.add('active');
+
+    const titles = {
+      dashboard: 'Inicio',
+      patients: 'Pacientes',
+      nueva: 'Nueva consulta',
+      agenda: 'Agenda',
+      historial: 'Historial médico',
+      estadisticas: 'Estadísticas'
+    };
+    document.getElementById('topbar-title').textContent = titles[section] || 'OdontoConsulta';
+
+    if (section === 'dashboard') renderDashboard();
+    if (section === 'patients') renderPacientes();
+    if (section === 'nueva') poblarSelectPaciente();
+    if (section === 'agenda') renderAgenda();
+    if (section === 'historial') renderHistorial();
+    if (section === 'estadisticas') renderEstadisticas();
+  }
+
+  // ====== Dashboard ======
+  function renderDashboard() {
+    document.getElementById('stat-total').textContent = pacientes.length;
+
+    const hoy = new Date().toISOString().split('T')[0];
+    const hoyCount = consultas.filter(c => c.fecha === hoy).length;
+    document.getElementById('stat-hoy').textContent = hoyCount;
+    document.getElementById('stat-hoy-fecha').textContent = formatDate(hoy);
+
+    document.getElementById('stat-total-consultas').textContent = consultas.length;
+
+    const recientes = [...consultas].sort((a,b)=>b.fecha.localeCompare(a.fecha)).slice(0,6);
+    const container = document.getElementById('recent-list');
+
+    if (!recientes.length) {
+      container.innerHTML = '<div class="empty"><i class="ti ti-clipboard-list"></i>Sin consultas registradas</div>';
+      return;
+    }
+
+    container.innerHTML = recientes.map(c => {
+      const p = pacientes.find(x => x.id === c.pacienteId);
+      const pname = p ? p.nombre : 'Desconocido';
+      const bc = tipoBadge(c.tipo);
+      return `
+        <div class="history-item">
+          <div class="history-header">
+            <div>
+              <div class="history-diag">${escapeHtml(c.diagnostico || '—')}</div>
+              <div style="font-size:12px;color:#888;margin-top:3px;">
+                <i class="ti ti-user" style="font-size:12px;"></i> ${escapeHtml(pname)}
+              </div>
+            </div>
+            <div style="text-align:right;">
+              <span class="badge ${bc}">${escapeHtml(c.tipo)}</span>
+              <div style="font-size:11px;color:#aaa;margin-top:4px;">${formatDate(c.fecha)}</div>
+            </div>
+          </div>
+          ${c.tratamiento ? `<div class="history-notes"><strong style="font-size:11px;color:#888;">Tratamiento:</strong> ${escapeHtml(c.tratamiento)}</div>` : ''}
+        </div>
+      `;
+    }).join('');
+  }
+
+  // ====== Pacientes ======
+  function renderPacientes() {
+    const q = (document.getElementById('search-paciente').value || '').toLowerCase();
+    const filtered = pacientes.filter(p => p.nombre.toLowerCase().includes(q) || String(p.dni).includes(q));
+
+    const container = document.getElementById('patients-list');
+    if (!filtered.length) {
+      container.innerHTML = '<div class="empty"><i class="ti ti-users"></i>No se encontraron pacientes</div>';
+      return;
+    }
+
+    container.innerHTML = filtered.map(p => {
+      const nc = consultas.filter(c => c.pacienteId === p.id).length;
+      const edad = p.nacimiento ? calcEdad(p.nacimiento) : '—';
+      const genLabel = p.genero === 'M' ? 'Masculino' : p.genero === 'F' ? 'Femenino' : 'Otro';
+      const alergia = p.alergias && p.alergias.trim() && p.alergias.trim().toLowerCase() !== 'ninguna';
+      return `
+        <div class="patient-card" onclick="verPerfil(${p.id})">
+          <div class="avatar">${escapeHtml(initiales(p.nombre))}</div>
+          <div class="patient-info">
+            <div class="patient-name">${escapeHtml(p.nombre)}</div>
+            <div class="patient-meta">DNI: ${escapeHtml(p.dni)} · ${edad} años · ${genLabel}</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0;">
+            <span class="badge badge-blue"><i class="ti ti-tooth" style="font-size:12px;"></i> ${nc} ${nc===1?'consulta':'consultas'}</span>
+            ${alergia ? `<div style="font-size:11px;color:#854F0B;margin-top:5px;">
+              <i class="ti ti-alert-triangle" style="font-size:11px;"></i> Alérgico
+            </div>` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function verPerfil(id) {
+    const p = pacientes.find(x => x.id === id);
+    if (!p) return;
+
+    const histP = consultas
+      .filter(c => c.pacienteId === id)
+      .sort((a,b)=>b.fecha.localeCompare(a.fecha));
+
+    document.getElementById('perfil-nombre-title').textContent = p.nombre;
+
+    document.getElementById('perfil-content').innerHTML = `
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
+        <div class="avatar" style="width:56px;height:56px;font-size:16px;">${escapeHtml(initiales(p.nombre))}</div>
+        <div>
+          <div style="font-size:16px;font-weight:900;color:#1a1a1a;">${escapeHtml(p.nombre)}</div>
+          <div style="font-size:12px;color:#888;">
+            ${p.nacimiento ? `${calcEdad(p.nacimiento)} años` : ''} · ${p.genero === 'M' ? 'Masculino' : p.genero === 'F' ? 'Femenino' : 'Otro'}
+          </div>
+        </div>
+      </div>
+
+      <table style="width:100%;font-size:13px;margin-bottom:14px;border-collapse:collapse;">
+        <tr><td style="color:#888;padding:6px 0;width:38%;font-weight:800;">DNI</td><td style="padding:6px 0;">${escapeHtml(p.dni)}</td></tr>
+        <tr><td style="color:#888;padding:6px 0;font-weight:800;">Teléfono</td><td style="padding:6px 0;">${escapeHtml(p.telefono || '—')}</td></tr>
+        <tr><td style="color:#888;padding:6px 0;font-weight:800;">Alergias</td>
+            <td style="padding:6px 0;color:${p.alergias && p.alergias.trim().toLowerCase() !== 'ninguna' ? '#854F0B' : 'inherit'};">
+              ${escapeHtml(p.alergias || '—')}
+            </td>
+        </tr>
+        <tr><td style="color:#888;padding:6px 0;font-weight:800;">Total consultas</td><td style="padding:6px 0;"><strong>${histP.length}</strong></td></tr>
+      </table>
+
+    <div class="divider"></div>
+
+      <div style="font-size:13px;font-weight:900;margin-bottom:14px;color:#1a1a1a;">Historial de consultas</div>
+
+
+      ${histP.length === 0
+        ? '<div class="empty" style="padding:24px 0;"><i class="ti ti-clipboard-list"></i>Sin consultas registradas</div>'
+        : `<div class="timeline">${histP.map(c => {
+            const bc = tipoBadge(c.tipo);
+            return `
+              <div class="tl-item">
+                <div class="tl-dot"></div>
+                <div class="tl-date">${formatDate(c.fecha)} · <span class="badge ${bc}" style="font-size:10px;padding:2px 8px;">${escapeHtml(c.tipo)}</span></div>
+                <div class="tl-title">${escapeHtml(c.motivo || 'Consulta')} · ${escapeHtml(c.diagnostico || '')}</div>
+                ${c.tratamiento ? `<div class="tl-body"><em>Tratamiento:</em> ${escapeHtml(c.tratamiento)}</div>` : ''}
+                ${c.receta ? `<div class="tl-body"><em>Receta/Indicaciones:</em> ${escapeHtml(c.receta)}</div>` : ''}
+                ${c.notas ? `<div class="tl-body"><em>Notas:</em> ${escapeHtml(c.notas)}</div>` : ''}
+              </div>
+            `;
+          }).join('')}</div>`}
+    `;
+
+    document.getElementById('modal-perfil').classList.add('open');
+  }
+
+  // ====== Nueva consulta ======
+  function poblarSelectPaciente() {
+    const sel = document.getElementById('form-paciente');
+    sel.innerHTML = '<option value="">Seleccionar paciente...</option>' +
+      pacientes.map(p => `<option value="${p.id}">${escapeHtml(p.nombre)} (${escapeHtml(p.dni)})</option>`).join('');
+
+    document.getElementById('form-fecha').value = new Date().toISOString().split('T')[0];
+  }
+
+  function guardarConsulta() {
+    const pid = parseInt(document.getElementById('form-paciente').value, 10);
+    const fecha = document.getElementById('form-fecha').value;
+    const tipo = document.getElementById('form-tipo').value;
+    const motivo = document.getElementById('form-motivo').value.trim();
+    const diagnostico = document.getElementById('form-diag').value.trim();
+    const tratamiento = document.getElementById('form-tratamiento').value.trim();
+    const receta = document.getElementById('form-receta').value.trim();
+    const notas = document.getElementById('form-notas').value.trim();
+
+    if (!pid || !fecha || !tipo || !motivo || !diagnostico) {
+      alert('Completa los campos obligatorios: paciente, fecha, tipo, motivo y diagnóstico.');
+      return;
+    }
+
+    consultas.push({
+      id: nextConsultaId++,
+      pacienteId: pid,
+      fecha,
+      tipo,
+      motivo,
+      diagnostico,
+      tratamiento,
+      receta,
+      notas,
+      atendido: false
+    });
+
+    saveData();
+    limpiarFormulario();
+
+    const msg = document.getElementById('msg-success');
+    msg.classList.add('show');
+    setTimeout(() => msg.classList.remove('show'), 3000);
+
+    renderDashboard();
+  }
+
+  function limpiarFormulario() {
+    ['form-motivo','form-diag','form-tratamiento','form-receta','form-notas'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    document.getElementById('form-paciente').value = '';
+    document.getElementById('form-tipo').value = 'Control';
+    document.getElementById('form-fecha').value = new Date().toISOString().split('T')[0];
+  }
+
+  // ====== Agenda ======
+  function renderAgenda() {
+    const sel = document.getElementById('agenda-paciente');
+    if (sel) {
+      sel.innerHTML = '<option value="">Seleccionar paciente...</option>' +
+        pacientes.map(p => `<option value="${p.id}">${escapeHtml(p.nombre)}</option>`).join('');
+    }
+
+    const q = (document.getElementById('search-agenda')?.value || '').toLowerCase();
+    const list = [...citas].filter(c => {
+      const p = pacientes.find(x => x.id === c.pacienteId);
+      const n = p ? p.nombre.toLowerCase() : '';
+      return n.includes(q);
+    }).sort((a,b)=>(a.fechaHora||'').localeCompare(b.fechaHora||''));
+
+    const container = document.getElementById('agenda-list');
+    if (!container) return;
+
+    if (!list.length) {
+      container.innerHTML = '<div class="empty"><i class="ti ti-calendar-event"></i>Sin citas registradas</div>';
+      return;
+    }
+
+    container.innerHTML = list.map(c => {
+      const p = pacientes.find(x => x.id === c.pacienteId);
+      const pname = p ? p.nombre : 'Desconocido';
+      return `
+        <div class="history-item">
+          <div class="history-header">
+            <div>
+              <div class="history-diag">${escapeHtml(pname)}</div>
+              <div class="history-notes">${escapeHtml((c.fechaHora || '').replace('T',' '))}</div>
+            </div>
+            <div>
+              <span class="badge badge-blue">${escapeHtml(c.estado || 'pendiente')}</span>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn" style="padding:6px 10px;font-size:11px;" onclick="cambiarEstadoCita(${c.id}, 'confirmada')">Confirmar</button>
+            <button class="btn" style="padding:6px 10px;font-size:11px;" onclick="cambiarEstadoCita(${c.id}, 'atendida')">Atendida</button>
+            <button class="btn" style="padding:6px 10px;font-size:11px;" onclick="cambiarEstadoCita(${c.id}, 'cancelada')">Cancelar</button>
+            <button class="btn" style="padding:6px 10px;font-size:11px;" onclick="convertirCitaAConsulta(${c.id})">Pasar a consulta</button>
+            <button class="btn" style="padding:6px 10px;font-size:11px;" onclick="eliminarCita(${c.id})"><i class="ti ti-trash"></i> Eliminar cita</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function crearCita() {
+    const pacienteId = parseInt(document.getElementById('agenda-paciente').value, 10);
+    const fechaHora = document.getElementById('agenda-fecha').value;
+    if (!pacienteId || !fechaHora) {
+      alert('Selecciona paciente y fecha/hora.');
+      return;
+    }
+    citas.push({ id: nextCitaId++, pacienteId, fechaHora, estado: 'pendiente' });
+    saveData();
+    renderAgenda();
+  }
+
+  function cambiarEstadoCita(id, estado) {
+    const c = citas.find(x => x.id === id);
+    if (!c) return;
+    c.estado = estado;
+    saveData();
+    renderAgenda();
+  }
+
+  function convertirCitaAConsulta(id) {
+    const c = citas.find(x => x.id === id);
+    if (!c) return;
+    navigate('nueva', document.querySelector('[data-section=nueva]'));
+    document.getElementById('form-paciente').value = String(c.pacienteId);
+    if (c.fechaHora) document.getElementById('form-fecha').value = c.fechaHora.split('T')[0];
+    c.estado = 'atendida';
+    saveData();
+  }
+
+  function eliminarCita(id) {
+    const ok = confirm('¿Eliminar esta cita de la agenda?');
+    if (!ok) return;
+    citas = citas.filter(c => c.id !== id);
+    saveData();
+    renderAgenda();
+  }
+
+  // ====== Historial ======
+  function renderHistorial() {
+    const q = (document.getElementById('search-historial').value || '').toLowerCase();
+
+    const filtered = consultas.filter(c => {
+      const p = pacientes.find(x => x.id === c.pacienteId);
+      const pname = p ? p.nombre.toLowerCase() : '';
+      const pdni = p ? String(p.dni).toLowerCase() : '';
+      const diag = (c.diagnostico || '').toLowerCase();
+
+      const matchQ = pname.includes(q) || pdni.includes(q) || diag.includes(q);
+      const matchTipo = (filtroActual === '' || c.tipo === filtroActual);
+      return matchQ && matchTipo;
+    }).sort((a,b)=>b.fecha.localeCompare(a.fecha));
+
+    const container = document.getElementById('historial-list');
+
+    if (!filtered.length) {
+      container.innerHTML = '<div class="empty"><i class="ti ti-clipboard-list"></i>No hay consultas que coincidan</div>';
+      return;
+    }
+
+    container.innerHTML = filtered.map(c => {
+      const p = pacientes.find(x => x.id === c.pacienteId);
+      const pname = p ? p.nombre : 'Desconocido';
+      const bc = tipoBadge(c.tipo);
+      return `
+        <div class="history-item">
+          <div class="history-header">
+            <div>
+              <div class="history-diag">${escapeHtml(c.diagnostico || '—')}</div>
+              <div style="font-size:12px;color:#888;margin-top:3px;">
+                <i class="ti ti-user" style="font-size:12px;"></i> ${escapeHtml(pname)} · ${escapeHtml(c.motivo || '')}
+              </div>
+            </div>
+            <div style="text-align:right;">
+              <span class="badge ${bc}">${escapeHtml(c.tipo)}</span>
+              ${c.atendido ? `<span class="badge badge-teal" style="margin-left:6px;"><i class="ti ti-check"></i> Atendido</span>` : ''}
+              <div style="font-size:11px;color:#aaa;margin-top:4px;">${formatDate(c.fecha)}</div>
+            </div>
+          </div>
+
+          ${isAdmin() ? `
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 2px;">
+            <button class="btn" style="padding:6px 10px;font-size:11px;" onclick="toggleAtendido(${c.id})">
+              <i class="ti ti-check"></i> ${c.atendido ? 'Desmarcar atendido' : 'Marcar atendido'}
+            </button>
+            <button class="btn" style="padding:6px 10px;font-size:11px;" onclick="eliminarConsulta(${c.id})">
+              <i class="ti ti-trash"></i> Eliminar
+            </button>
+          </div>` : ''}
+
+          ${c.tratamiento ? `<div class="history-notes"><strong style="font-size:11px;">Tratamiento:</strong> ${escapeHtml(c.tratamiento)}</div>` : ''}
+          ${c.receta ? `<div class="history-notes"><strong style="font-size:11px;">Receta/Indicaciones:</strong> ${escapeHtml(c.receta)}</div>` : ''}
+          ${c.notas ? `<div class="history-notes"><strong style="font-size:11px;">Notas:</strong> ${escapeHtml(c.notas)}</div>` : ''}
+        </div>
+      `;
+    }).join('');
+  }
+
+  function filtroTipo(tipo, el) {
+    filtroActual = tipo;
+    document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+    if (el) el.classList.add('active');
+    renderHistorial();
+  }
+
+  function toggleAtendido(id) {
+    if (!isAdmin()) return;
+    const c = consultas.find(x => x.id === id);
+    if (!c) return;
+    c.atendido = !c.atendido;
+    saveData();
+    renderHistorial();
+    renderDashboard();
+    renderEstadisticas();
+  }
+
+  function eliminarConsulta(id) {
+    if (!isAdmin()) return;
+    const ok = confirm('¿Eliminar esta consulta del historial?');
+    if (!ok) return;
+    consultas = consultas.filter(c => c.id !== id);
+    saveData();
+    renderHistorial();
+    renderDashboard();
+    renderEstadisticas();
+  }
+
+  function borrarHistorialConsultas() {
+    if (!isAdmin()) return;
+    const ok = confirm('¿Seguro que quieres borrar TODO el historial de consultas?');
+    if (!ok) return;
+    consultas = [];
+    saveData();
+    renderHistorial();
+    renderDashboard();
+    renderEstadisticas();
+  }
+
+  // ====== Estadísticas ======
+  function renderEstadisticas() {
+    const data = pacientes.map(p => {
+      const list = consultas.filter(c => c.pacienteId === p.id);
+      const ultima = [...list].sort((a,b)=>b.fecha.localeCompare(a.fecha))[0];
+      return { ...p, total: list.length, ultima };
+    }).sort((a,b)=>b.total - a.total);
+
+    const container = document.getElementById('stats-list');
+    if (!data.length) {
+      container.innerHTML = '<div class="empty">Sin datos</div>';
+      return;
+    }
+
+    const maxVal = data[0].total || 1;
+    container.innerHTML = data.map(p => {
+      const pct = Math.round((p.total / maxVal) * 100);
+      return `
+        <div class="card" style="margin-bottom:10px;cursor:pointer;" onclick="verPerfil(${p.id})">
+          <div style="display:flex;align-items:center;gap:14px;">
+            <div class="avatar">${escapeHtml(initiales(p.nombre))}</div>
+            <div style="flex:1;">
+              <div style="font-size:14px;font-weight:900;color:#1a1a1a;">${escapeHtml(p.nombre)}</div>
+              <div style="font-size:12px;color:#888;">DNI: ${escapeHtml(p.dni)}</div>
+              <div style="background:#f0f0f0;border-radius:999px;height:8px;overflow:hidden;margin-top:10px;">
+                <div style="height:100%;background:#185FA5;border-radius:999px;width:${pct}%;transition:width 0.5s ease;"></div>
+              </div>
+              <div style="display:flex;justify-content:space-between;margin-top:8px;gap:12px;flex-wrap:wrap;">
+                <span style="font-size:11px;color:#aaa;font-weight:700;">Última: ${p.ultima ? formatDate(p.ultima.fecha) : '—'}</span>
+                <span style="font-size:13px;font-weight:900;color:#185FA5;">${p.total} consulta${p.total!==1?'s':''}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // ====== Modales pacientes ======
+  function openClientQuickRegister() {
+    const msg = document.getElementById('modal-msg');
+    msg.textContent = '';
+    msg.classList.remove('show');
+
+    ['mp-nombre','mp-dni','mp-telefono','mp-alergias'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('mp-fecha').value = '';
+    document.getElementById('mp-genero').value = 'O';
+
+    document.getElementById('modal-paciente').classList.add('open');
+  }
+
+  function openModalPaciente() {
+    ['mp-nombre','mp-dni','mp-telefono','mp-alergias'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('mp-fecha').value = '';
+    document.getElementById('mp-genero').value = 'M';
+
+    const msg = document.getElementById('modal-msg');
+    msg.textContent = '';
+    msg.classList.remove('show');
+
+    document.getElementById('modal-paciente').classList.add('open');
+  }
+
+  function closeModal(id) {
+    document.getElementById(id).classList.remove('open');
+  }
+
+  function guardarPaciente() {
+    const nombre = document.getElementById('mp-nombre').value.trim();
+    const dni = document.getElementById('mp-dni').value.trim();
+    const msg = document.getElementById('modal-msg');
+
+    if (!nombre || !dni) {
+      msg.textContent = 'El nombre y el DNI son obligatorios.';
+      msg.classList.add('show');
+      return;
+    }
+
+    if (pacientes.find(p => String(p.dni) === String(dni))) {
+      msg.textContent = 'Ya existe un paciente con ese DNI.';
+      msg.classList.add('show');
+      return;
+    }
+
+    const alergias = document.getElementById('mp-alergias').value.trim() || 'Ninguna';
+
+    pacientes.push({
+      id: nextPacienteId++,
+      nombre,
+      dni,
+      nacimiento: document.getElementById('mp-fecha').value,
+      genero: document.getElementById('mp-genero').value,
+      telefono: document.getElementById('mp-telefono').value.trim(),
+      alergias
+    });
+
+    saveData();
+    closeModal('modal-paciente');
+    renderPacientes();
+    poblarSelectPaciente();
+
+    if (!isAdmin() && !isClientLogged()) {
+      const nuevo = pacientes[pacientes.length - 1];
+      if (nuevo) {
+        const sel = document.getElementById('form-paciente');
+        if (sel) sel.value = String(nuevo.id);
+      }
+    }
+  }
+
+  // Cerrar modal al hacer clic fuera
+  document.addEventListener('click', e => {
+    if (e.target && e.target.classList && e.target.classList.contains('modal-bg')) {
+      e.target.classList.remove('open');
+    }
+  });
+
+  function resetDemoWrapper() {
+    resetDemoData(true);
+    saveData();
+    renderDashboard();
+    renderPacientes();
+    renderHistorial();
+    renderEstadisticas();
+    limpiarFormulario();
+  }
+
+  function resetDemo() {
+    if (!isAdmin()) {
+      alert('Solo el administrador puede borrar datos.');
+      return;
+    }
+    const ok = confirm('¿Seguro que quieres borrar los datos guardados?');
+    if (!ok) return;
+    resetDemoWrapper();
+  }
+
+  // ====== Seguridad mínima: escape HTML ======
+  function escapeHtml(str) {
+    return String(str ?? '')
+      .replaceAll('&','&amp;')
+      .replaceAll('<','<')
+      .replaceAll('>','>')
+      .replaceAll('"','"')
+      .replaceAll("'",'&#039;');
+  }
+
+  function isAdmin() {
+    return appRole === 'admin';
+  }
+
+  function isClientLogged() {
+    return appRole === 'client' && Number.isFinite(Number(currentClientId));
+  }
+
+  function openClientAuthModal(mode='register') {
+    clientAuthMode = mode === 'login' ? 'login' : 'register';
+    const msg = document.getElementById('client-auth-msg');
+    msg.textContent = '';
+    msg.classList.remove('show');
+    renderClientAuthMode();
+    document.getElementById('modal-client-auth').classList.add('open');
+  }
+
+  function toggleClientAuthMode() {
+    clientAuthMode = clientAuthMode === 'register' ? 'login' : 'register';
+    const msg = document.getElementById('client-auth-msg');
+    msg.textContent = '';
+    msg.classList.remove('show');
+    renderClientAuthMode();
+  }
+
+  function renderClientAuthMode() {
+    const isReg = clientAuthMode === 'register';
+    document.getElementById('client-auth-title').textContent = isReg ? 'Registro cliente' : 'Login cliente';
+    document.getElementById('client-register-fields').style.display = isReg ? '' : 'none';
+    document.getElementById('client-login-fields').style.display = isReg ? 'none' : '';
+    document.getElementById('btn-client-auth-submit').innerHTML = isReg
+      ? '<i class="ti ti-check"></i> Crear cuenta'
+      : '<i class="ti ti-login"></i> Ingresar';
+  }
+
+  function submitClientAuth() {
+    const msg = document.getElementById('client-auth-msg');
+
+    if (clientAuthMode === 'register') {
+      const nombre = document.getElementById('cr-nombre').value.trim();
+      const dni = document.getElementById('cr-dni').value.trim();
+      const telefono = document.getElementById('cr-telefono').value.trim();
+      const email = document.getElementById('cr-email').value.trim().toLowerCase();
+      const password = document.getElementById('cr-pass').value.trim();
+
+      if (!nombre || !dni || !telefono || !email || !password) {
+        msg.textContent = 'Completa todos los campos obligatorios.';
+        msg.classList.add('show');
+        return;
+      }
+
+      if (password.length < 6) {
+        msg.textContent = 'La contraseña debe tener al menos 6 caracteres.';
+        msg.classList.add('show');
+        return;
+      }
+
+      if (pacientes.find(p => String(p.dni) === String(dni))) {
+        msg.textContent = 'Ya existe un cliente con ese DNI.';
+        msg.classList.add('show');
+        return;
+      }
+
+      if (pacientes.find(p => String(p.email || '').toLowerCase() === email)) {
+        msg.textContent = 'Ya existe un cliente con ese email.';
+        msg.classList.add('show');
+        return;
+      }
+
+      pacientes.push({
+        id: nextPacienteId++,
+        nombre,
+        dni,
+        nacimiento: '',
+        genero: 'O',
+        telefono,
+        alergias: 'Ninguna',
+        email,
+        password
+      });
+
+      saveData();
+      msg.textContent = 'Cuenta creada. Ahora puedes ingresar.';
+      msg.classList.remove('show');
+      closeModal('modal-client-auth');
+      openClientAuthModal('login');
+      return;
+    }
+
+    const user = document.getElementById('cl-user').value.trim().toLowerCase();
+    const pass = document.getElementById('cl-pass').value.trim();
+
+    const found = pacientes.find(p =>
+      (String(p.dni).toLowerCase() === user || String(p.email || '').toLowerCase() === user) &&
+      String(p.password || '') === pass
+    );
+
+    if (!found) {
+      msg.textContent = 'Credenciales inválidas.';
+      msg.classList.add('show');
+      return;
+    }
+
+    currentClientId = found.id;
+    appRole = 'client';
+    sessionStorage.setItem(CLIENT_SESSION_KEY, String(found.id));
+    sessionStorage.removeItem(ADMIN_SESSION_KEY);
+    closeModal('modal-client-auth');
+    applyRoleUI();
+    navigate('historial', document.querySelector('.nav-item[data-section="historial"]'));
+  }
+
+  function logoutClient() {
+    currentClientId = null;
+    sessionStorage.removeItem(CLIENT_SESSION_KEY);
+    appRole = 'client';
+    applyRoleUI();
+    navigate('nueva', document.querySelector('.nav-item[data-section="nueva"]'));
+  }
+
+  function loginAdmin() {
+    const p = prompt('Ingresa contraseña de administrador:');
+    if (p === null) return;
+    if (p !== ADMIN_PASS) {
+      alert('Contraseña incorrecta');
+      return;
+    }
+    appRole = 'admin';
+    currentClientId = null;
+    sessionStorage.removeItem(CLIENT_SESSION_KEY);
+    sessionStorage.setItem(ADMIN_SESSION_KEY, '1');
+    applyRoleUI();
+    navigate('dashboard', document.querySelector('.nav-item[data-section="dashboard"]'));
+  }
+
+  function logoutAdmin() {
+    appRole = 'client';
+    sessionStorage.removeItem(ADMIN_SESSION_KEY);
+    applyRoleUI();
+    navigate('nueva', document.querySelector('.nav-item[data-section="nueva"]'));
+  }
+
+  function applyRoleUI() {
+    const isAdm = isAdmin();
+    const isCli = isClientLogged();
+
+    document.getElementById('role-badge').textContent = isAdm
+      ? 'Modo administrador'
+      : (isCli ? 'Cliente autenticado' : 'Modo cliente');
+
+    document.getElementById('btn-admin-login').style.display = isAdm ? 'none' : 'inline-flex';
+    document.getElementById('btn-admin-logout').style.display = isAdm ? 'inline-flex' : 'none';
+
+    document.getElementById('btn-client-register').style.display = isAdm || isCli ? 'none' : 'inline-flex';
+    document.getElementById('btn-client-login').style.display = isAdm || isCli ? 'none' : 'inline-flex';
+    document.getElementById('btn-client-logout').style.display = isCli && !isAdm ? 'inline-flex' : 'none';
+
+    const btnQuickReg = document.getElementById('btn-client-quick-register');
+    if (btnQuickReg) {
+      btnQuickReg.style.display = (!isAdm && !isCli) ? 'inline-flex' : 'none';
+    }
+
+    document.querySelectorAll('.nav-item[data-section]').forEach(el => {
+      const s = el.getAttribute('data-section');
+      let allow = false;
+      if (isAdm) {
+        allow = true;
+      } else if (isCli) {
+        allow = (s === 'historial' || s === 'agenda' || s === 'nueva' || s === 'patients');
+      } else {
+        allow = (s === 'nueva' || s === 'historial');
+      }
+      el.style.display = allow ? 'flex' : 'none';
+    });
+
+    ['dashboard','patients','agenda','estadisticas'].forEach(s => {
+      const sec = document.getElementById('sec-' + s);
+      if (!sec) return;
+      if (isAdm) {
+        sec.style.display = '';
+      } else if (isCli && (s === 'agenda' || s === 'patients')) {
+        sec.style.display = '';
+      } else {
+        sec.style.display = 'none';
+      }
+    });
+
+    const btnBorrarHistorial = document.querySelector('button[onclick="borrarHistorialConsultas()"]');
+    if (btnBorrarHistorial) btnBorrarHistorial.style.display = isAdm ? 'inline-flex' : 'none';
+  }
+
+  function hideLoader() {
+    const loader = document.getElementById('page-loader');
+    if (!loader) return;
+    loader.classList.add('hide');
+    document.body.classList.remove('app-loading');
+    setTimeout(() => loader.remove(), 500);
+  }
+
+  // ====== INIT ======
+  (async function init() {
+    document.body.classList.add('app-loading');
+    await loadData();
+
+    if (sessionStorage.getItem(ADMIN_SESSION_KEY) === '1') {
+      appRole = 'admin';
+      currentClientId = null;
+    } else {
+      const cid = sessionStorage.getItem(CLIENT_SESSION_KEY);
+      appRole = 'client';
+      currentClientId = cid ? Number(cid) : null;
+    }
+    applyRoleUI();
+
+    const hoy = new Date();
+    const DIAS = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+    document.getElementById('topbar-date').textContent =
+      `${DIAS[hoy.getDay()]}, ${hoy.getDate()} de ${MESES2[hoy.getMonth()]} ${hoy.getFullYear()}`;
+
+    if (isAdmin()) {
+      navigate('dashboard', document.querySelector('.nav-item[data-section="dashboard"]'));
+    } else {
+      navigate('nueva', document.querySelector('.nav-item[data-section="nueva"]'));
+    }
+
+    setTimeout(hideLoader, 900);
+  })();
+</script>
+
+</body>
+</html>
